@@ -41,3 +41,15 @@
 1. Run the keyboard gadget setup on the Raspberry Pi:  
    ```bash
    sudo ./make_into_keyboard.sh
+
+
+   This enables the Pi to act as a USB keyboard over the USB-C connection.
+
+2. Install Python 3.11 using pyenv if not already installed.
+
+3. Run the detection scripts manually (for testing or initial setup):
+```bash 
+python src/facemesh.py
+```
+
+4. Optionally, enable systemd services to automate scripts on boot.
