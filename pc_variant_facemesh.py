@@ -9,6 +9,8 @@ camera_input = 1
 width = 640
 height = 480
 fps = 20
+
+#Eye settings (no not augments this aint cyberpunk)
 left_eye_coords = [33, 160, 158, 133, 153, 144]
 right_eye_coords = [362, 385, 387, 263, 373, 380]
 EAR_threshold = 0.2
