@@ -1,16 +1,18 @@
 import cv2 as cv
 import mediapipe as mp
 import math
+import time
 
 
 #global settings (change em to gain fps on raspberry pi)
 camera_input = 1
 width = 640
 height = 480
-fps = 30
+fps = 20
 left_eye_coords = [33, 160, 158, 133, 153, 144]
 right_eye_coords = [362, 385, 387, 263, 373, 380]
 EAR_threshold = 0.2
+valid_blink_duration = 0.5
 
 class FaceMesh():
 
@@ -25,9 +27,9 @@ class FaceMesh():
 
 
 
-        # self.capture.set(cv.CAP_PROP_FRAME_WIDTH,width)
-        # self.capture.set(cv.CAP_PROP_FRAME_HEIGHT,height)
-        # self.capture.set(cv.CAP_PROP_FPS,fps)
+        self.capture.set(cv.CAP_PROP_FRAME_WIDTH,width)
+        self.capture.set(cv.CAP_PROP_FRAME_HEIGHT,height)
+        self.capture.set(cv.CAP_PROP_FPS,fps)
 
         print(f"width: {self.capture.get(cv.CAP_PROP_FRAME_WIDTH)} height: {self.capture.get(cv.CAP_PROP_FRAME_HEIGHT)}")
 
@@ -38,7 +40,7 @@ class FaceMesh():
         
         #init facemesh model 
         self.face_mesh = self.mp_face_mesh.FaceMesh(
-            max_num_faces = 1,                #no of faces to be detected in frame
+            max_num_faces = 10,                #no of faces to be detected in frame
             refine_landmarks = True,         #better landmark details but cpu intensive 
             min_detection_confidence = 0.5,  #threshold for face detection
             min_tracking_confidence = 0.5,   #tracking across frames
@@ -46,6 +48,11 @@ class FaceMesh():
 
         self.drawing_spec = self.mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
         
+        self.left_eye_flag = False
+        self.left_eye_time = 0
+
+        self.right_eye_flag = False
+        self.right_eye_time = 0
     
 
     def startCapture(self):
@@ -63,16 +70,57 @@ class FaceMesh():
                     h,w,_ = frame.shape
                     self.getEyeLandmarks(result,h,w)
                     self.calc_EAR()
-                    
-                    print(f"Left Eye: {"Close" if self.EAR[0] < EAR_threshold else "Open"}")
-                    print(f"Right Eye: {"Close" if self.EAR[1] < EAR_threshold else "Open"}")
+            
+
+
+            
                     frame.flags.writeable = True
 
-                    frame = cv.flip(frame,1)
-                    cv.putText(frame, f"Left Eye: {"Close" if self.EAR[1] < EAR_threshold else "Open"}",(w//2 - 300,h//2),cv.FONT_HERSHEY_COMPLEX,1.0, (0,255,0))
-                    cv.putText(frame,f"Right Eye: {"Close" if self.EAR[0] < EAR_threshold else "Open"}",(w//2 - 300,h//2 + 50),cv.FONT_HERSHEY_COMPLEX,1.0, (0,255,0))
+                   # print(self.EAR[0],self.EAR[1])
 
-                   # self.drawLandmarks(result,frame)
+                    #left eye is shut
+                    if self.EAR[0] <= EAR_threshold:
+                        if not self.left_eye_flag:
+                            self.left_eye_flag = True
+                            self.left_eye_time = time.time()
+                    
+                    #eye is open check if previous it was closed
+                    elif self.left_eye_flag:
+                        self.left_eye_flag = False 
+                        if time.time() - self.left_eye_time >= valid_blink_duration:
+                            print("Valid Left Eye blink")
+                            pass  #call keyboard function
+
+
+
+                    #Right eye is shut
+                    if self.EAR[1] <= EAR_threshold:
+                        if not self.right_eye_flag:
+                            self.right_eye_flag = True
+                            self.right_eye_time = time.time()
+                    
+                    #eye is open, check if previous it was closed
+                    elif self.right_eye_flag:
+                        self.right_eye_flag = False 
+                        if time.time() - self.right_eye_time >= valid_blink_duration:
+                            print("Valid Right Eye blink")
+                            pass  #call keyboard function
+
+
+
+                    # if self.EAR[1] < EAR_threshold: 
+                    #     self.left_eye_flag = True
+
+                    # if self.EAR[0] < EAR_threshold:
+                    #     self.right_eye_flag = True
+
+                
+                   # cv.putText(frame, f"Left Eye: {"Close" if self.EAR[1] < EAR_threshold else "Open"}",(w//2 - 300,h//2),cv.FONT_HERSHEY_COMPLEX,1.0, (0,255,0))
+                    #cv.putText(frame, f"Left Eye: {"Close" if self.EAR[1] < EAR_threshold else "Open"}",(w//2 - 300,h//2),cv.FONT_HERSHEY_COMPLEX,1.0, (0,255,0))
+
+                    #frame = cv.flip(frame,1)
+
+                    #self.drawLandmarks(result,frame)
                     cv.imshow("landmarks", frame)
 
                 
