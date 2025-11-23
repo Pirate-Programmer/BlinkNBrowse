@@ -2,7 +2,7 @@ import cv2 as cv
 import mediapipe as mp
 import math
 import time
-
+from hid import hid_keyboard
 
 #global settings (change em to gain fps on raspberry pi)
 camera_input = 1
@@ -16,12 +16,16 @@ right_eye_coords = [362, 385, 387, 263, 373, 380]
 EAR_threshold = 0.2
 valid_blink_duration = 0.5
 
+#NOTE EAR[0]: right and EAR[1] : left ;as the image pov is reverse for the camera
+
 class FaceMesh():
 
     #intializing
     def __init__(self):
         #setup webcam for capturing live frames
         self.capture = cv.VideoCapture(camera_input)
+
+        self.keyboard = hid_keyboard()
 
         if not self.capture.isOpened():
             print("Err opening camera\nexiting...")
@@ -55,63 +59,62 @@ class FaceMesh():
     
 
     def startCapture(self):
-        print("Press 'Q' to quit/exit")
-        while True: 
-            isFrame,frame = self.capture.read()
-            
-            #check to see frame has been read
-            if isFrame:
-                frame.flags.writeable = False
-                frame_rgb = cv.cvtColor(frame,cv.COLOR_BGR2RGB)
-                result = self.face_mesh.process(frame_rgb)
+        try:
+            while True: 
+                isFrame,frame = self.capture.read()
                 
-                if result.multi_face_landmarks:
-                    h,w,_ = frame.shape
-                    self.getEyeLandmarks(result,h,w)
-                    self.calc_EAR()
-            
-
-
-                    #left eye is shut
-                    if self.EAR[0] <= EAR_threshold:
-                        if not self.left_eye_flag:
-                            self.left_eye_flag = True
-                            self.left_eye_time = time.time()
+                #check to see frame has been read
+                if isFrame:
+                    frame.flags.writeable = False
+                    frame_rgb = cv.cvtColor(frame,cv.COLOR_BGR2RGB)
+                    result = self.face_mesh.process(frame_rgb)
                     
-                    #eye is open check if previous it was closed
-                    elif self.left_eye_flag:
-                        self.left_eye_flag = False 
-                        if time.time() - self.left_eye_time >= valid_blink_duration:
-                            print("Valid Left Eye blink")
-                            pass  #call keyboard function
+                    if result.multi_face_landmarks:
+                        h,w,_ = frame.shape
+                        self.getEyeLandmarks(result,h,w)
+                        self.calc_EAR()
 
 
+                    self.left_blink()
+                    self.right_blink()
 
-                    #Right eye is shut
-                    if self.EAR[1] <= EAR_threshold:
-                        if not self.right_eye_flag:
-                            self.right_eye_flag = True
-                            self.right_eye_time = time.time()
-                    
-                    #eye is open, check if previous it was closed
-                    elif self.right_eye_flag:
-                        self.right_eye_flag = False 
-                        if time.time() - self.right_eye_time >= valid_blink_duration:
-                            print("Valid Right Eye blink")
-                            pass  #call keyboard function
-
+        except KeyboardInterrupt:
+            print("Ctrl + C hit exiting...")
+        finally:
+            self.capture.release()
 
                 
-            #exit on key press Q
-            if cv.waitKey(10) & 0xFF == ord('q'):
-                print("exiting ...")
-                break
 
-        #release the videocapture
-        self.capture.release()
 
-        #welp what the name says
-        cv.destroyAllWindows()
+
+
+    def right_blink(self):
+        if self.EAR[0] <= EAR_threshold:
+            if not self.right_eye_flag:
+                self.right_eye_flag = True
+                self.right_eye_time = time.time()
+        
+        #eye is open, check if previous it was closed
+        elif self.right_eye_flag:
+            self.right_eye_flag = False 
+            if time.time() - self.right_eye_time >= valid_blink_duration:
+                print("Right Eye blink")
+                self.keyboard.right_tab()
+                
+
+    
+    def left_blink(self):
+        if self.EAR[1] <= EAR_threshold:
+            if not self.left_eye_flag:
+                self.left_eye_flag = True
+                self.left_eye_time = time.time()
+        
+        #eye is open check if previous it was closed
+        elif self.left_eye_flag:
+            self.left_eye_flag = False 
+            if time.time() - self.left_eye_time >= valid_blink_duration:
+                print("Left Eye blink")
+                self.keyboard.left_tab()
 
 
 

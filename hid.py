@@ -1,5 +1,4 @@
 #Run On RaspberryPi after doing the settings so its recongnized as a hid keyboard
-
 import time
 
 # Path to the HID device
@@ -43,59 +42,75 @@ MODIFIER = {
     'gui': 0x08
 }
 
-def press_key(hid, key_code, modifier=0):
-    """
-    Press a key (do not release yet)
-    hid: file object for /dev/hidg0
-    key_code: USB HID key code
-    modifier: modifier byte
-    """
-    report = bytes([modifier, 0x00, key_code, 0x00, 0x00, 0x00, 0x00, 0x00])
-    hid.write(report)
-    hid.flush()
 
-def release_keys(hid):
-    """
-    Release all keys
-    """
-    hid.write(bytes(8))
-    hid.flush()
+class hid_keyboard:
 
-def send_key(hid, key_code, modifier=0, hold_time=0.05):
-    """
-    Press and release a key
-    """
-    press_key(hid, key_code, modifier)
-    time.sleep(hold_time)
-    release_keys(hid)
-    time.sleep(0.01)  # small delay between key presses
+    def __init__(self):
+        self.hid = open(HID_DEVICE, 'wb')
 
-def type_string(hid, text):
-    """Type a string of letters/numbers (basic a-z, 0-9, space)"""
-    for char in text.lower():
-        if char == ' ':
-            send_key(hid, KEYS['space'])
-        elif char in KEYS:
-            send_key(hid, KEYS[char])
-        else:
-            print(f"Character '{char}' not mapped, skipping")
+    def press_key(self, key_code, modifier=0):
+        """
+        Press a key (do not release yet)
+        hid: file object for /dev/hidg0
+        key_code: USB HID key code
+        modifier: modifier byte
+        """
+        report = bytes([modifier, 0x00, key_code, 0x00, 0x00, 0x00, 0x00, 0x00])
+        self.hid.write(report)
+        self.hid.flush()
+
+    def release_keys(self):
+        """
+        Release all keys
+        """
+        self.hid.write(bytes(8))
+        self.hid.flush()
 
 
-#when MOUSE KEYS IS ENABLED
-def right_click(hid):
-    # Right click
-    press_key(hid,KEYS['kp/'])
-    send_key(hid,KEYS['kp5'])
+    def send_key(self,key_code, modifier=0, hold_time=0.05):
+        """
+        Press and release a key
+        """
+        self.press_key( key_code, modifier)
+        time.sleep(hold_time)
+        self.release_keys()
+        time.sleep(0.01)  # small delay between key presses
 
-def double_click(hid):
-    send_key(hid,KEYS['kp+'])
+
+    def type_string(self, text):
+        """Type a string of letters/numbers (basic a-z, 0-9, space)"""
+        for char in text.lower():
+            if char == ' ':
+                self.send_key( KEYS['space'])
+            elif char in KEYS:
+                self.send_key( KEYS[char])
+            else:
+                print(f"Character '{char}' not mapped, skipping")
 
 
-if __name__ == "__main__":
-    time.sleep(5)
-    with open(HID_DEVICE, 'wb') as hid:
+    #NOTE when Chrome browser in focus
+    def right_tab(self):
+        self.send_key(KEYS["tab"],MODIFIER["ctrl"])
 
-        # Hold Shift and press '/' (produces '?')
+
+    def left_tab(self):
+        self.press_key(KEYS["shift"])
+        self.send_key(KEYS["tab"],MODIFIER["ctrl"])
         
-        time.sleep(0.1)
-        release_keys(hid)
+
+    #when MOUSE KEYS IS ENABLED in accessibility settings
+    def right_click(self):
+        # Right click
+        self.press_key(KEYS['kp/'])
+        self.send_key(KEYS['kp5'])
+
+    def double_click(self,):
+        self.send_key(KEYS['kp+'])
+
+
+
+
+
+
+
+        
