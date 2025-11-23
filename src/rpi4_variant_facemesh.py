@@ -3,6 +3,7 @@ import mediapipe as mp
 import math
 import time
 from hid import *
+from hand_gesture import HandGesture
 
 #global settings (change em to gain fps on raspberry pi)
 camera_input = 0
@@ -14,7 +15,7 @@ fps = 20
 left_eye_coords = [33, 160, 158, 133, 153, 144]
 right_eye_coords = [362, 385, 387, 263, 373, 380]
 EAR_threshold = 0.2
-valid_blink_duration = 0.5
+valid_blink_duration = 0.3
 
 #NOTE EAR[0]: right and EAR[1] : left ;as the image pov is reverse for the camera
 
@@ -24,8 +25,10 @@ class FaceMesh():
     def __init__(self):
         #setup webcam for capturing live frames
         self.capture = cv.VideoCapture(camera_input)
-
+        
+        
         self.keyboard = hid_keyboard()
+        self.hand_gesture = HandGesture(self.keyboard)
 
         if not self.capture.isOpened():
             print("Err opening camera\nexiting...")
@@ -47,10 +50,11 @@ class FaceMesh():
             max_num_faces = 1,                #no of faces to be detected in frame
             refine_landmarks = True,         #better landmark details but cpu intensive
             min_detection_confidence = 0.5,  #threshold for face detection
-            min_tracking_confidence = 0.5,   #tracking across frames
+            min_tracking_confidence = 0.5,   #tracking across frames/home/raspberry/Desktop/BlinkNBrowse/run_blink.sh
+
         )
 
-
+        self.EAR = []
         self.left_eye_flag = False
         self.left_eye_time = 0
 
@@ -80,7 +84,6 @@ class FaceMesh():
 
 
 
-
                     # --- LEFT BLINK: hold Alt if not already held ---
                     if not self.alt_mode and self.left_blink():
                         self.alt_mode = True
@@ -100,6 +103,8 @@ class FaceMesh():
 
 
 
+                    #hand gesture logic
+                    self.hand_gesture.process(frame)
 
 
         except KeyboardInterrupt:
