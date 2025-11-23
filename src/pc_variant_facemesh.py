@@ -29,9 +29,9 @@ class FaceMesh():
 
 
 
-        self.capture.set(cv.CAP_PROP_FRAME_WIDTH,width)
-        self.capture.set(cv.CAP_PROP_FRAME_HEIGHT,height)
-        self.capture.set(cv.CAP_PROP_FPS,fps)
+        # self.capture.set(cv.CAP_PROP_FRAME_WIDTH,width)
+        # self.capture.set(cv.CAP_PROP_FRAME_HEIGHT,height)
+        # self.capture.set(cv.CAP_PROP_FPS,fps)
 
         print(f"width: {self.capture.get(cv.CAP_PROP_FRAME_WIDTH)} height: {self.capture.get(cv.CAP_PROP_FRAME_HEIGHT)}")
 

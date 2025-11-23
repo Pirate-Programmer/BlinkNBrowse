@@ -1,4 +1,4 @@
-#Run On RaspberryPi after doing the settings so its recongnized as a hid keyboard
+#Run On RaspberryPi after doing the settings so its recongnized as a hid keyboard 
 import time
 
 # Path to the HID device
@@ -51,7 +51,6 @@ class hid_keyboard:
     def press_key(self, key_code, modifier=0):
         """
         Press a key (do not release yet)
-        hid: file object for /dev/hidg0
         key_code: USB HID key code
         modifier: modifier byte
         """
@@ -98,7 +97,7 @@ class hid_keyboard:
         self.send_key(KEYS["tab"],MODIFIER["ctrl"])
         
 
-    #when MOUSE KEYS IS ENABLED in accessibility settings
+    #when MOUSE KEYS IS ENABLED in accessibility settings windows
     def right_click(self):
         # Right click
         self.press_key(KEYS['kp/'])

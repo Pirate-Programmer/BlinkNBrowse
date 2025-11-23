@@ -5,7 +5,7 @@ import time
 from hid import hid_keyboard
 
 #global settings (change em to gain fps on raspberry pi)
-camera_input = 1
+camera_input = 0
 width = 640
 height = 480
 fps = 20
@@ -37,7 +37,7 @@ class FaceMesh():
         self.capture.set(cv.CAP_PROP_FRAME_HEIGHT,height)
         self.capture.set(cv.CAP_PROP_FPS,fps)
 
-        print(f"width: {self.capture.get(cv.CAP_PROP_FRAME_WIDTH)} height: {self.capture.get(cv.CAP_PROP_FRAME_HEIGHT)}")
+        #print(f"width: {self.capture.get(cv.CAP_PROP_FRAME_WIDTH)} height: {self.capture.get(cv.CAP_PROP_FRAME_HEIGHT)}")
 
         #load facemesh module and landmark drawing modules
         self.mp_face_mesh = mp.solutions.face_mesh 
