@@ -47,64 +47,76 @@ class hid_keyboard:
 
     def __init__(self):
         self.hid = open(HID_DEVICE, 'wb')
+        self.modifier = 0          # currently held modifier keys
+        self.pressed_keys = []     # currently held non-modifier keys
 
-    def press_key(self, key_code, modifier=0):
-        """
-        Press a key (do not release yet)
-        key_code: USB HID key code
-        modifier: modifier byte
-        """
-        report = bytes([modifier, 0x00, key_code, 0x00, 0x00, 0x00, 0x00, 0x00])
-        self.hid.write(report)
-        self.hid.flush()
+    def press_key(self, key_code=0, modifier=0):
+        """Hold a key or modifier without releasing others."""
+        self.modifier |= modifier
+        if key_code != 0 and key_code not in self.pressed_keys:
+            self.pressed_keys.append(key_code)
+        self._send_report()
+
+    def release_key(self, key_code=0, modifier=0):
+        """Release a specific key or modifier, keep others held."""
+        self.modifier &= ~modifier
+        if key_code in self.pressed_keys:
+            self.pressed_keys.remove(key_code)
+        self._send_report()
 
     def release_keys(self):
-        """
-        Release all keys
-        """
-        self.hid.write(bytes(8))
-        self.hid.flush()
+        """Release all keys/modifiers."""
+        self.modifier = 0
+        self.pressed_keys = []
+        self._send_report()
 
-
-    def send_key(self,key_code, modifier=0, hold_time=0.05):
-        """
-        Press and release a key
-        """
-        self.press_key( key_code, modifier)
+    def send_key(self, key_code, modifier=0, hold_time=0.05):
+        """Press and release a key with optional modifier."""
+        self.press_key(key_code, modifier)
         time.sleep(hold_time)
-        self.release_keys()
-        time.sleep(0.01)  # small delay between key presses
-
+        self.release_key(key_code, modifier)
+        time.sleep(0.01)
 
     def type_string(self, text):
-        """Type a string of letters/numbers (basic a-z, 0-9, space)"""
+        """Type letters/numbers (a-z, 0-9, space)."""
         for char in text.lower():
             if char == ' ':
-                self.send_key( KEYS['space'])
+                self.send_key(KEYS['space'])
             elif char in KEYS:
-                self.send_key( KEYS[char])
+                self.send_key(KEYS[char])
             else:
                 print(f"Character '{char}' not mapped, skipping")
 
-
-    #NOTE when Chrome browser in focus
+    # --- Chrome/browser helpers ---
     def right_tab(self):
-        self.send_key(KEYS["tab"],MODIFIER["ctrl"])
+        self.send_key(KEYS["tab"], MODIFIER["ctrl"])
 
+    def hold_alt(self):
+        self.press_key(0x00, MODIFIER["alt"])
 
-    def left_tab(self):
-        self.press_key(KEYS["shift"])
-        self.send_key(KEYS["tab"],MODIFIER["ctrl"])
-        
+    def release_alt(self):
+        self.release_key(modifier=MODIFIER["alt"])
 
-    #when MOUSE KEYS IS ENABLED in accessibility settings windows
+    def send_tab(self):
+        self.send_key(KEYS["tab"])
+
+    # --- Mouse key helpers ---
     def right_click(self):
-        # Right click
         self.press_key(KEYS['kp/'])
         self.send_key(KEYS['kp5'])
 
-    def double_click(self,):
+    def double_click(self):
         self.send_key(KEYS['kp+'])
+
+    # --- Internal report ---
+    def _send_report(self):
+        # HID report is 8 bytes: [modifier, reserved, k1..k6]
+        keys = self.pressed_keys[:6] + [0]*(6 - len(self.pressed_keys[:6]))
+        report = bytes([self.modifier, 0x00] + keys)
+        report += bytes(8 - len(report))
+        self.hid.write(report)
+        self.hid.flush()
+
 
 
 

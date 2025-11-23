@@ -2,7 +2,7 @@ import cv2 as cv
 import mediapipe as mp
 import math
 import time
-from hid import hid_keyboard
+from hid import *
 
 #global settings (change em to gain fps on raspberry pi)
 camera_input = 0
@@ -40,55 +40,75 @@ class FaceMesh():
         #print(f"width: {self.capture.get(cv.CAP_PROP_FRAME_WIDTH)} height: {self.capture.get(cv.CAP_PROP_FRAME_HEIGHT)}")
 
         #load facemesh module and landmark drawing modules
-        self.mp_face_mesh = mp.solutions.face_mesh 
-        
-        #init facemesh model 
+        self.mp_face_mesh = mp.solutions.face_mesh
+
+        #init facemesh model
         self.face_mesh = self.mp_face_mesh.FaceMesh(
             max_num_faces = 1,                #no of faces to be detected in frame
-            refine_landmarks = True,         #better landmark details but cpu intensive 
+            refine_landmarks = True,         #better landmark details but cpu intensive
             min_detection_confidence = 0.5,  #threshold for face detection
             min_tracking_confidence = 0.5,   #tracking across frames
         )
 
-        
+
         self.left_eye_flag = False
         self.left_eye_time = 0
 
         self.right_eye_flag = False
         self.right_eye_time = 0
-    
+
+        self.alt_mode = False
+
 
     #Da main Loop all frame captures and detection takes place here
     def startCapture(self):
         try:
-            while True: 
+            while True:
                 isFrame,frame = self.capture.read()
-                
+
                 #check to see frame has been read
                 if isFrame:
                     frame.flags.writeable = False
                     frame_rgb = cv.cvtColor(frame,cv.COLOR_BGR2RGB)
                     result = self.face_mesh.process(frame_rgb)
-                    
+
                     if result.multi_face_landmarks:
                         h,w,_ = frame.shape
                         self.getEyeLandmarks(result,h,w)
                         self.calc_EAR()
 
 
-                    if self.left_blink():
-                        self.keyboard.left_tab()
 
-                    if self.right_blink():
-                        self.keyboard.right_tab()
+
+
+                    # --- LEFT BLINK: hold Alt if not already held ---
+                    if not self.alt_mode and self.left_blink():
+                        self.alt_mode = True
+                        self.keyboard.hold_alt()   # hold Alt
+                        print("Alt held (switch mode)")
+
+                    # --- RIGHT BLINK: press Tab while Alt held ---
+                    if self.right_blink() and self.alt_mode:
+                        self.keyboard.send_tab()   # just Tab, Alt is still held
+                        print("Tab pressed while Alt held")
+
+                    # --- LEFT BLINK AGAIN: release Alt ---
+                    if self.alt_mode and self.left_blink():
+                        self.alt_mode = False
+                        self.keyboard.release_key(modifier=MODIFIER['alt'])
+                        print("Alt released, selection done")
+
+
+
 
 
         except KeyboardInterrupt:
             print("Ctrl + C hit exiting...")
         finally:
+            self.keyboard.release_keys()
             self.capture.release()
 
-                
+
 
 
     def right_blink(self) -> bool:
@@ -96,25 +116,25 @@ class FaceMesh():
             if not self.right_eye_flag:
                 self.right_eye_flag = True
                 self.right_eye_time = time.time()
-        
+
         #eye is open, check if previous it was closed
         elif self.right_eye_flag:
-            self.right_eye_flag = False 
+            self.right_eye_flag = False
             if time.time() - self.right_eye_time >= valid_blink_duration:
                 print("Right Eye blink")
                 return True
-        return False                
+        return False
 
-    
+
     def left_blink(self) -> bool:
         if self.EAR[1] <= EAR_threshold:
             if not self.left_eye_flag:
                 self.left_eye_flag = True
                 self.left_eye_time = time.time()
-        
+
         #eye is open check if previous it was closed
         elif self.left_eye_flag:
-            self.left_eye_flag = False 
+            self.left_eye_flag = False
             if time.time() - self.left_eye_time >= valid_blink_duration:
                 print("Left Eye blink")
                 return True
@@ -158,8 +178,3 @@ if __name__ == "__main__":
         facemesh.startCapture()
     finally:
         cv.destroyAllWindows()
-
-
-
-
-
