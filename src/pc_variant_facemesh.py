@@ -86,27 +86,11 @@ class FaceMesh():
                             self.left_eye_flag = True
                             self.left_eye_time = time.time()
                     
-                    #eye is open check if previous it was closed
-                    elif self.left_eye_flag:
-                        self.left_eye_flag = False 
-                        if time.time() - self.left_eye_time >= valid_blink_duration:
-                            print("Valid Left Eye blink")
-                            pass  #call keyboard function
+                    if self.left_blink():
+                        pass #Put some fuction
 
-
-
-                    #Right eye is shut
-                    if self.EAR[1] <= EAR_threshold:
-                        if not self.right_eye_flag:
-                            self.right_eye_flag = True
-                            self.right_eye_time = time.time()
-                    
-                    #eye is open, check if previous it was closed
-                    elif self.right_eye_flag:
-                        self.right_eye_flag = False 
-                        if time.time() - self.right_eye_time >= valid_blink_duration:
-                            print("Valid Right Eye blink")
-                            pass  #call keyboard function
+                    if self.right_blink():
+                        pass #put some function
 
 
 
@@ -137,6 +121,36 @@ class FaceMesh():
         #welp what the name says
         cv.destroyAllWindows()
 
+
+
+    def right_blink(self) -> bool:
+        if self.EAR[0] <= EAR_threshold:
+            if not self.right_eye_flag:
+                self.right_eye_flag = True
+                self.right_eye_time = time.time()
+        
+        #eye is open, check if previous it was closed
+        elif self.right_eye_flag:
+            self.right_eye_flag = False 
+            if time.time() - self.right_eye_time >= valid_blink_duration:
+                print("Right Eye blink")
+                return True
+        return False                
+
+    
+    def left_blink(self) -> bool:
+        if self.EAR[1] <= EAR_threshold:
+            if not self.left_eye_flag:
+                self.left_eye_flag = True
+                self.left_eye_time = time.time()
+        
+        #eye is open check if previous it was closed
+        elif self.left_eye_flag:
+            self.left_eye_flag = False 
+            if time.time() - self.left_eye_time >= valid_blink_duration:
+                print("Left Eye blink")
+                return True
+        return False
 
 
     def getEyeLandmarks(self,result,h,w):

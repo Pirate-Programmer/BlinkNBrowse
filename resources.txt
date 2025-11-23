@@ -1,4 +1,0 @@
-facemesh sample code: 
-    https://mediapipe.readthedocs.io/en/latest/solutions/face_mesh.html
-
-get left and right eye landmarks:

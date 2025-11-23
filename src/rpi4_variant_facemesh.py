@@ -58,6 +58,7 @@ class FaceMesh():
         self.right_eye_time = 0
     
 
+    #Da main Loop all frame captures and detection takes place here
     def startCapture(self):
         try:
             while True: 
@@ -75,8 +76,12 @@ class FaceMesh():
                         self.calc_EAR()
 
 
-                    self.left_blink()
-                    self.right_blink()
+                    if self.left_blink():
+                        self.keyboard.left_tab()
+
+                    if self.right_blink():
+                        self.keyboard.right_tab()
+
 
         except KeyboardInterrupt:
             print("Ctrl + C hit exiting...")
@@ -86,9 +91,7 @@ class FaceMesh():
                 
 
 
-
-
-    def right_blink(self):
+    def right_blink(self) -> bool:
         if self.EAR[0] <= EAR_threshold:
             if not self.right_eye_flag:
                 self.right_eye_flag = True
@@ -99,11 +102,11 @@ class FaceMesh():
             self.right_eye_flag = False 
             if time.time() - self.right_eye_time >= valid_blink_duration:
                 print("Right Eye blink")
-                self.keyboard.right_tab()
-                
+                return True
+        return False                
 
     
-    def left_blink(self):
+    def left_blink(self) -> bool:
         if self.EAR[1] <= EAR_threshold:
             if not self.left_eye_flag:
                 self.left_eye_flag = True
@@ -114,7 +117,8 @@ class FaceMesh():
             self.left_eye_flag = False 
             if time.time() - self.left_eye_time >= valid_blink_duration:
                 print("Left Eye blink")
-                self.keyboard.left_tab()
+                return True
+        return False
 
 
 
